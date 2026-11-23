@@ -3,13 +3,17 @@
 const form = document.getElementById("amounts");
 const keys = ["union", "wechat", "alipay", "bank", "pledges", "goal"];
 const inputs = keys.map((key) => form.elements.namedItem(key));
-const defaults = window.campaignAmounts;
+const originalAmounts = Object.freeze({
+  union: 22587, wechat: 77806.3, alipay: 66649.1, bank: null, pledges: 20000, goal: 1171580
+});
+const defaults = window.campaignAmounts ?? originalAmounts;
 const publishedVersion = JSON.stringify(defaults);
 const storageKey = "yemeni-student-campaign-amounts";
 const poster = document.getElementById("poster");
 const context = poster.getContext("2d");
 const template = new Image();
 const download = document.getElementById("download");
+const reset = document.getElementById("reset");
 const settings = document.getElementById("download-settings");
 const error = document.getElementById("error");
 const status = document.getElementById("status");
@@ -78,6 +82,7 @@ function update() {
   error.hidden = !invalid;
   download.disabled = invalid || !templateReady || !content.ready;
   settings.disabled = invalid || !content.ready;
+  reset.disabled = !content.ready;
   if (invalid) return;
 
   const received = values.union + values.wechat + values.alipay + (values.bank ?? 0);
@@ -286,11 +291,13 @@ form.addEventListener("input", () => {
   update();
   if (error.hidden) save();
 });
-document.getElementById("reset").addEventListener("click", () => {
-  fill(defaults);
+reset.addEventListener("click", () => {
+  fill(originalAmounts);
+  content.restoreOriginal();
   update();
   save();
-  feedback("تمت استعادة الأرقام المنشورة.");
+  document.getElementById("payment-status").textContent = "";
+  feedback("تمت استعادة المبالغ والرموز وبيانات البنك والنصوص الأصلية.");
 });
 download.addEventListener("click", () => {
   cancelAnimationFrame(frame);
@@ -327,4 +334,4 @@ template.addEventListener("load", () => {
   update();
 });
 template.addEventListener("error", () => feedback("تعذّر تحميل قالب الملصق. أعد تحميل الصفحة."));
-template.src = "poster-template.png";
+template.src = "poster-template.png?v=3";

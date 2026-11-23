@@ -2,7 +2,7 @@
 
 const contentDefaults = {
   kicker: "نداء إنساني عاجل",
-  headline: "لنقف مع طالب يمني\nفي محنته",
+  headline: "لنقف مع طالب يمني\nفي وقت الشدّة",
   story: "باعت أسرته كل ما تملك لتغطية تكاليف دفن سيدة توفّيت إثر حادث مروري في شاندونغ بالصين. واليوم يبقى على الطالب دفع مبلغ التسوية المتفق عليه مع أسرتها.",
   appeal: "بعطائكم نعينه على الوفاء بالتسوية.",
   caption: "صورة تعبيرية",
@@ -30,6 +30,11 @@ function loadImage(src) {
   const image = new Image();
   image.src = src;
   return image.decode().then(() => image);
+}
+
+function contentSignature(values) {
+  return Array.from(JSON.stringify(values)).reduce((hash, character) =>
+    Math.imul(hash ^ character.codePointAt(0), 16777619), 2166136261);
 }
 
 async function prepareQr(file) {
@@ -64,18 +69,24 @@ function createPosterContent(onChange, onStorageFailure) {
     }
   }
   const storageKey = "yemeni-student-campaign-content";
-  const version = JSON.stringify(published);
-  const signature = Array.from(version).reduce((hash, character) =>
-    Math.imul(hash ^ character.codePointAt(0), 16777619), 2166136261);
+  const signature = contentSignature(published);
+  const previousSignature = supplied.headline === undefined
+    ? contentSignature({ ...published, headline: "لنقف مع طالب يمني\nفي محنته" })
+    : signature;
   const values = { ...published };
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
-    if (saved?.signature === signature && saved.values) Object.assign(values, saved.values);
+    if ([signature, previousSignature].includes(saved?.signature) && saved.values) {
+      Object.assign(values, saved.values);
+    }
   } catch {
     // The published content is available when browser storage is disabled.
   }
 
   const images = {};
+  const originalImages = {};
+  const controlsByKey = new Map();
+  const previews = {};
   let loading = 0;
   let ready = false;
   const feedback = document.getElementById("payment-status");
@@ -94,6 +105,7 @@ function createPosterContent(onChange, onStorageFailure) {
     if (multiline) control.rows = key === "story" ? 4 : 2;
     control.maxLength = maxLength;
     control.value = values[key];
+    controlsByKey.set(key, control);
     control.dir = ltr ? "ltr" : "auto";
     if (key === "bankNumber") control.inputMode = "numeric";
     control.addEventListener("input", () => {
@@ -133,6 +145,7 @@ function createPosterContent(onChange, onStorageFailure) {
     row.className = "qr-field";
     const preview = document.createElement("img");
     preview.alt = "";
+    previews[key] = preview;
     const controls = document.createElement("div");
     field(controls, `${key}Name`, `اسم الرمز ${index + 1}`, 40);
     const label = document.createElement("label");
@@ -147,10 +160,11 @@ function createPosterContent(onChange, onStorageFailure) {
 
     const imageKey = `${key}Image`;
     const source = values[imageKey];
+    originalImages[key] = await loadImage(contentDefaults[imageKey]);
     try {
-      images[key] = await loadImage(source);
+      images[key] = source === contentDefaults[imageKey] ? originalImages[key] : await loadImage(source);
     } catch {
-      images[key] = await loadImage(contentDefaults[imageKey]);
+      images[key] = originalImages[key];
       values[imageKey] = contentDefaults[imageKey];
       feedback.textContent = "تعذّر تحميل أحد الرموز المعدّلة. استُعيدت صورته الأصلية.";
     }
@@ -189,6 +203,13 @@ function createPosterContent(onChange, onStorageFailure) {
 
   return {
     values, images,
-    get ready() { return ready && loading === 0; }
+    get ready() { return ready && loading === 0; },
+    restoreOriginal() {
+      Object.assign(values, contentDefaults);
+      Object.assign(images, originalImages);
+      controlsByKey.forEach((control, key) => { control.value = values[key]; });
+      qrKeys.forEach((key) => { previews[key].src = images[key].src; });
+      persist();
+    }
   };
 }
