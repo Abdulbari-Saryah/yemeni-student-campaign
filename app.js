@@ -389,4 +389,4 @@ template.addEventListener("load", async () => {
   update();
 });
 template.addEventListener("error", () => feedback("تعذّر تحميل قالب الملصق. أعد تحميل الصفحة."));
-template.src = "poster-template.png?v=5";
+template.src = "poster-template.png?v=6";
