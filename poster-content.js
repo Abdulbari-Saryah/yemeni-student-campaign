@@ -1,10 +1,11 @@
 "use strict";
 
 const contentDefaults = {
-  kicker: "نداء إنساني عاجل",
-  headline: "لنقف مع طالب يمني\nفي وقت الشدّة",
-  story: "باعت أسرته كل ما تملك لتغطية تكاليف دفن سيدة توفّيت إثر حادث مروري في شاندونغ بالصين. واليوم يبقى على الطالب دفع مبلغ التسوية المتفق عليه مع أسرتها.",
-  appeal: "بعطائكم نعينه على الوفاء بالتسوية.",
+  kicker: "",
+  headline: "نداء إنساني عاجل لأهل الخير وأصحاب القلوب الرحيمة",
+  story: "طالب يمني في الصين يمر بظروف إنسانية ونفسية قاسية إثر حادث مروري، ترتبت عليه التزامات مالية كبيرة بلغت (1,171,580 يوان صيني)، وأصبحت هذه المسؤولية ثقلاً كبيراً عليه وعلى أسرته.",
+  appeal: "نناشدكم الوقوف معه ومساندته لتجاوز هذه المحنة، فكل مساهمة مهما كانت بسيطة قد تصنع فرقاً كبيراً في حياته.",
+  thanks: "جزاكم الله خيراً وجعلها في ميزان حسناتكم.",
   caption: "صورة تعبيرية",
   quote: "«مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ»",
   citation: "رواه مسلم (2588)",
@@ -70,13 +71,22 @@ function createPosterContent(onChange, onStorageFailure) {
   }
   const storageKey = "yemeni-student-campaign-content";
   const signature = contentSignature(published);
-  const previousSignature = supplied.headline === undefined
-    ? contentSignature({ ...published, headline: "لنقف مع طالب يمني\nفي محنته" })
-    : signature;
+  const legacyContent = { ...published };
+  delete legacyContent.thanks;
+  Object.assign(legacyContent, {
+    kicker: supplied.kicker ?? "نداء إنساني عاجل",
+    headline: supplied.headline ?? "لنقف مع طالب يمني\nفي وقت الشدّة",
+    story: supplied.story ?? "باعت أسرته كل ما تملك لتغطية تكاليف دفن سيدة توفّيت إثر حادث مروري في شاندونغ بالصين. واليوم يبقى على الطالب دفع مبلغ التسوية المتفق عليه مع أسرتها.",
+    appeal: supplied.appeal ?? "بعطائكم نعينه على الوفاء بالتسوية."
+  });
+  const previousSignatures = [signature, contentSignature(legacyContent)];
+  if (supplied.headline === undefined) {
+    previousSignatures.push(contentSignature({ ...legacyContent, headline: "لنقف مع طالب يمني\nفي محنته" }));
+  }
   const values = { ...published };
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
-    if ([signature, previousSignature].includes(saved?.signature) && saved.values) {
+    if (saved && previousSignatures.includes(saved.signature) && saved.values) {
       Object.assign(values, saved.values);
     }
   } catch {
@@ -122,7 +132,8 @@ function createPosterContent(onChange, onStorageFailure) {
     ["kicker", "السطر أعلى العنوان", 50],
     ["headline", "العنوان الرئيسي", 85, true],
     ["story", "نص النداء", 300, true],
-    ["appeal", "دعوة المساهمة", 100],
+    ["appeal", "دعوة المساهمة", 180, true],
+    ["thanks", "عبارة الشكر", 120],
     ["caption", "وصف الصورة", 30],
     ["quote", "الحديث أو الاقتباس", 140],
     ["citation", "مصدر الاقتباس", 65],

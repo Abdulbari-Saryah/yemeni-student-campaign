@@ -144,9 +144,10 @@ function wrappedText(value, x, y, { size, weight, width, lines, spacing, color }
 function paintContent() {
   const { values, images } = content;
   text(values.kicker, 1312, 74, { color: "#f3cb86", font: "700 27px Tahoma, Arial", maxWidth: 710 });
-  wrappedText(values.headline, 1364, 171, { size: 75, weight: 700, width: 835, lines: 2, spacing: 88, color: "#fffaf0" });
-  wrappedText(values.story, 1364, 319, { size: 27, weight: 400, width: 805, lines: 3, spacing: 34, color: "#edf2ef" });
-  text(values.appeal, 1364, 436, { color: "#f3cb86", font: "700 27px Tahoma, Arial", maxWidth: 805 });
+  wrappedText(values.headline, 1364, 126, { size: 54, weight: 700, width: 850, lines: 2, spacing: 58, color: "#fffaf0" });
+  wrappedText(values.story, 1364, 236, { size: 26, weight: 400, width: 815, lines: 3, spacing: 33, color: "#edf2ef" });
+  wrappedText(values.appeal, 1364, 350, { size: 26, weight: 700, width: 815, lines: 2, spacing: 33, color: "#f3cb86" });
+  text(values.thanks, 1364, 436, { color: "#edf2ef", font: "700 25px Tahoma, Arial", maxWidth: 815 });
   if (values.caption) {
     context.font = "17px Tahoma, Arial";
     const width = Math.min(280, context.measureText(values.caption).width + 22);
