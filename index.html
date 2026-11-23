@@ -7,6 +7,7 @@
   <title>تحديث ملصق حملة الطالب اليمني</title>
   <link rel="stylesheet" href="style.css">
   <script src="campaign.js" defer></script>
+  <script src="poster-content.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -42,10 +43,21 @@
         </p>
         <p id="status" class="status" role="status"></p>
       </form>
+      <details class="edit-content" id="edit-payment">
+        <summary>رموز QR والحساب البنكي</summary>
+        <p>ارفع صورة واضحة لكل رمز مع هامش أبيض حوله. يظهر الاسم المكتوب تحت الرمز في الملصق.</p>
+        <div id="qr-fields"></div>
+        <div id="bank-fields" class="content-fields"></div>
+        <p id="payment-status" class="status" role="status"></p>
+      </details>
+      <details class="edit-content" id="edit-copy">
+        <summary>نصوص الملصق</summary>
+        <div id="copy-fields" class="content-fields"></div>
+      </details>
       <details>
-        <summary>كيف أحدّث الأرقام لكل الزوار؟</summary>
-        <p>تُحفظ تعديلاتك في هذا المتصفح. لتحديث الأرقام التي تظهر للجميع، نزّل ملف المبالغ بعد التعديل واستبدل به ملف <bdi>campaign.js</bdi> في مستودع GitHub.</p>
-        <button class="secondary" id="download-settings" type="button">تنزيل ملف المبالغ للنشر</button>
+        <summary>كيف أنشر التعديلات لجميع الزوار؟</summary>
+        <p>تُحفظ التعديلات في هذا المتصفح. لنشر المبالغ والنصوص وبيانات الدفع للجميع، نزّل ملف الإعدادات واستبدل به ملف <bdi>campaign.js</bdi> في مستودع GitHub.</p>
+        <button class="secondary" id="download-settings" type="button">تنزيل ملف الإعدادات للنشر</button>
       </details>
     </section>
     <section class="preview" aria-labelledby="preview-heading">

@@ -21,6 +21,9 @@ let current;
 let frame = 0;
 let displayed = [0, 0];
 let templateReady = false;
+const content = createPosterContent(update, () => {
+  status.textContent = "تعذّر حفظ محتوى الملصق في المتصفح. نزّل ملف الإعدادات للاحتفاظ به.";
+});
 
 function parseYuan(value) {
   const normalized = value.trim()
@@ -73,8 +76,8 @@ function update() {
     values[input.name] = amount;
   }
   error.hidden = !invalid;
-  download.disabled = invalid || !templateReady;
-  settings.disabled = invalid;
+  download.disabled = invalid || !templateReady || !content.ready;
+  settings.disabled = invalid || !content.ready;
   if (invalid) return;
 
   const received = values.union + values.wechat + values.alipay + (values.bank ?? 0);
@@ -91,7 +94,7 @@ function update() {
   document.getElementById("progress").setAttribute("aria-valuenow", Math.min(100, percent));
   document.getElementById("received-bar").style.width = `${cashFraction * 100}%`;
   document.getElementById("pledge-bar").style.width = `${(totalFraction - cashFraction) * 100}%`;
-  if (templateReady) animatePoster();
+  if (templateReady && content.ready) animatePoster();
 }
 
 function rectangle(x, y, width, height, radius, fillColor) {
@@ -111,10 +114,88 @@ function text(value, x, y, { color = "#142c25", font, align = "right", direction
   return context.measureText(value).width;
 }
 
+function wrappedText(value, x, y, { size, weight, width, lines, spacing, color }) {
+  let rows;
+  let font;
+  for (; size >= 12; size--) {
+    font = `${weight} ${size}px Tahoma, Arial`;
+    context.font = font;
+    rows = value.trim().split("\n").flatMap((paragraph) => {
+      const wrapped = [""];
+      for (const word of paragraph.trim().split(/\s+/)) {
+        const previous = wrapped.at(-1);
+        const candidate = previous ? `${previous} ${word}` : word;
+        if (previous && context.measureText(candidate).width > width) wrapped.push(word);
+        else wrapped[wrapped.length - 1] = candidate;
+      }
+      return wrapped;
+    });
+    if (rows.length <= lines) break;
+  }
+  if (rows.length > lines) rows = [...rows.slice(0, lines - 1), rows.slice(lines - 1).join(" ")];
+  rows.forEach((row, index) => text(row, x, y + index * spacing, { font, color, maxWidth: width }));
+}
+
+function paintContent() {
+  const { values, images } = content;
+  text(values.kicker, 1312, 74, { color: "#f3cb86", font: "700 27px Tahoma, Arial", maxWidth: 710 });
+  wrappedText(values.headline, 1364, 171, { size: 75, weight: 700, width: 835, lines: 2, spacing: 88, color: "#fffaf0" });
+  wrappedText(values.story, 1364, 319, { size: 27, weight: 400, width: 805, lines: 3, spacing: 34, color: "#edf2ef" });
+  text(values.appeal, 1364, 436, { color: "#f3cb86", font: "700 27px Tahoma, Arial", maxWidth: 805 });
+  if (values.caption) {
+    context.font = "17px Tahoma, Arial";
+    const width = Math.min(280, context.measureText(values.caption).width + 22);
+    rectangle(27, 427, width, 33, 5, "#0b201cde");
+    text(values.caption, 27 + width / 2, 450, {
+      color: "#f7eece", font: "17px Tahoma, Arial", align: "center", maxWidth: width - 22
+    });
+  }
+  const quoteFont = "700 37px Tahoma, Arial";
+  const sourceFont = "20px Tahoma, Arial";
+  context.font = quoteFont;
+  const quoteWidth = Math.min(900, context.measureText(values.quote).width);
+  context.font = sourceFont;
+  const sourceWidth = Math.min(255, context.measureText(values.citation).width);
+  const gap = quoteWidth && sourceWidth ? 34 : 0;
+  const quoteRight = 720 + (quoteWidth + sourceWidth + gap) / 2;
+  if (quoteWidth) text(values.quote, quoteRight, 1061, { font: quoteFont, maxWidth: quoteWidth, color: "#193b30" });
+  if (gap) rectangle(quoteRight - quoteWidth - gap / 2, 1038, 1, 28, 0, "#c9ac7b");
+  if (sourceWidth) text(values.citation, quoteRight - quoteWidth - gap, 1057, {
+    font: sourceFont, color: "#624c2e", maxWidth: sourceWidth
+  });
+  text(values.encouragement, 70, 1155, { font: "25px Tahoma, Arial", color: "#526458", align: "left", maxWidth: 970 });
+  text(values.wechatTitle, 1107, 1223, { font: "700 25px Tahoma, Arial", align: "center", maxWidth: 475 });
+  text(values.alipayTitle, 683, 1223, { font: "700 25px Tahoma, Arial", align: "center", maxWidth: 245 });
+  text(values.bankTitle, 499, 1227, { font: "700 25px Tahoma, Arial", maxWidth: 405 });
+  text("رقم الحساب", 499, 1268, { font: "18px Tahoma, Arial", color: "#486155" });
+  text(values.bankNumber, 499, 1309, {
+    font: '700 32px "Segoe UI", Arial', direction: "ltr", maxWidth: 405
+  });
+  text("اسم صاحب الحساب", 499, 1346, { font: "18px Tahoma, Arial", color: "#486155" });
+  text(values.bankHolder, 499, 1376, {
+    font: '700 22px "Segoe UI", Arial', direction: /^[a-z]/i.test(values.bankHolder.trim()) ? "ltr" : "rtl", maxWidth: 405
+  });
+
+  const centers = [1003, 1209, 683];
+  qrKeys.forEach((key, index) => {
+    const center = centers[index];
+    const image = images[key];
+    const scale = 170 / Math.max(image.naturalWidth, image.naturalHeight);
+    const width = image.naturalWidth * scale;
+    const height = image.naturalHeight * scale;
+    rectangle(center - 91, 1236, 182, 182, 8, "#e3e6de");
+    rectangle(center - 90, 1237, 180, 180, 7, "#fff");
+    context.drawImage(image, center - width / 2, 1327 - height / 2, width, height);
+    text(values[`${key}Name`], center, 1442, { font: "700 19px Tahoma, Arial", align: "center", maxWidth: 194 });
+  });
+  text(values.footer, 720, 1541, { font: "700 25px Tahoma, Arial", color: "#f9f5e9", align: "center", maxWidth: 1330 });
+}
+
 function paintPoster(cashFraction, totalFraction) {
   const { values, received, total, percent } = current;
   context.setTransform(2, 0, 0, 2, 0, 0);
   context.drawImage(template, 0, 0, poster.width / 2, poster.height / 2);
+  paintContent();
   const totalWidth = text(formatAmount(total, true), 1331, 628, {
     font: '700 88px "Segoe UI", Arial', direction: "ltr"
   });
@@ -228,7 +309,12 @@ settings.addEventListener("click", () => {
   const values = Object.fromEntries(Object.entries(current.values).map(([key, cents]) => [
     key, cents === null ? null : cents / 100
   ]));
-  const file = new Blob([`window.campaignAmounts = ${JSON.stringify(values, null, 2)};\n`], {
+  const contentSettings = Object.fromEntries(Object.entries(content.values).filter(([key, value]) =>
+    !key.endsWith("Image") || formatPattern.test(value)));
+  const file = new Blob([
+    `window.campaignAmounts = ${JSON.stringify(values, null, 2)};\n`,
+    `window.campaignContent = ${JSON.stringify(contentSettings, null, 2)};\n`
+  ], {
     type: "text/javascript;charset=utf-8"
   });
   saveFile(file, "campaign.js");
@@ -238,11 +324,7 @@ fill(readSaved());
 update();
 template.addEventListener("load", () => {
   templateReady = true;
-  if (current) {
-    displayed = [current.cashFraction, current.totalFraction];
-    paintPoster(...displayed);
-  }
-  download.disabled = !error.hidden;
+  update();
 });
 template.addEventListener("error", () => feedback("تعذّر تحميل قالب الملصق. أعد تحميل الصفحة."));
 template.src = "poster-template.png";
