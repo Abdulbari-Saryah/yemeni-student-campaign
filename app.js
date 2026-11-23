@@ -20,6 +20,8 @@ const status = document.getElementById("status");
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 const integer = new Intl.NumberFormat("en-US");
 const decimal = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const arabic = '"Noto Sans Arabic", Tahoma, Arial';
+const heroHeight = 456;
 
 let current;
 let frame = 0;
@@ -119,43 +121,86 @@ function text(value, x, y, { color = "#142c25", font, align = "right", direction
   return context.measureText(value).width;
 }
 
-function wrappedText(value, x, y, { size, weight, width, lines, spacing, color }) {
-  let rows;
-  let font;
-  for (; size >= 12; size--) {
-    font = `${weight} ${size}px Tahoma, Arial`;
-    context.font = font;
-    rows = value.trim().split("\n").flatMap((paragraph) => {
-      const wrapped = [""];
-      for (const word of paragraph.trim().split(/\s+/)) {
-        const previous = wrapped.at(-1);
-        const candidate = previous ? `${previous} ${word}` : word;
-        if (previous && context.measureText(candidate).width > width) wrapped.push(word);
-        else wrapped[wrapped.length - 1] = candidate;
+function wrapLines(value, font, width) {
+  if (!value.trim()) return [];
+  context.font = font;
+  context.direction = "rtl";
+  const rows = [];
+  let line = "";
+  for (const word of value.trim().split(/\s+/)) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (context.measureText(candidate).width <= width) {
+      line = candidate;
+      continue;
+    }
+    if (line) rows.push(line);
+    line = "";
+    for (const letter of word) {
+      if (line && context.measureText(line + letter).width > width) {
+        rows.push(line);
+        line = "";
       }
-      return wrapped;
-    });
-    if (rows.length <= lines) break;
+      line += letter;
+    }
   }
-  if (rows.length > lines) rows = [...rows.slice(0, lines - 1), rows.slice(lines - 1).join(" ")];
-  rows.forEach((row, index) => text(row, x, y + index * spacing, { font, color, maxWidth: width }));
+  if (line) rows.push(line);
+  return rows;
+}
+
+function storyLayout() {
+  const { story, appeal, thanks } = content.values;
+  const groups = [
+    { value: story, font: `500 36px ${arabic}`, color: "#233a31" },
+    { value: appeal, font: `750 36px ${arabic}`, color: "#613d19" },
+    { value: thanks, font: `650 34px ${arabic}`, color: "#233a31" }
+  ].map((group) => ({ ...group, rows: wrapLines(group.value, group.font, 1175) }))
+    .filter((group) => group.rows.length);
+  const rowHeight = 55;
+  const gap = 17;
+  const height = groups.length
+    ? 67 + groups.reduce((sum, group) => sum + group.rows.length * rowHeight, 0) + (groups.length - 1) * gap
+    : 0;
+  return { groups, rowHeight, gap, height };
+}
+
+function paintStory({ groups, rowHeight, gap, height }) {
+  if (!height) return;
+  context.fillStyle = "#f4f1e8";
+  context.fillRect(0, heroHeight, 1440, height);
+  rectangle(70, heroHeight + 20, 1300, height - 40, 22, "#fffdf7");
+  rectangle(1354, heroHeight + 46, 5, height - 92, 2.5, "#bd8842");
+  let baseline = heroHeight + 83;
+  for (const { rows, font, color } of groups) {
+    for (const row of rows) {
+      text(row, 1326, baseline, { font, color });
+      baseline += rowHeight;
+    }
+    baseline += gap;
+  }
+}
+
+function paintHero() {
+  const { values } = content;
+  text(values.kicker, 1312, 78, { color: "#f3cb86", font: `700 28px ${arabic}`, maxWidth: 710 });
+  const headlineFont = `800 62px ${arabic}`;
+  const headline = wrapLines(values.headline, headlineFont, 820);
+  const gap = Math.min(79, 252 / Math.max(1, headline.length - 1));
+  const start = 253 - (headline.length - 1) * gap / 2;
+  headline.forEach((row, index) => {
+    text(row, 1364, start + index * gap, { color: "#fffaf0", font: headlineFont });
+  });
+  if (values.caption) {
+    context.font = `500 20px ${arabic}`;
+    const width = Math.min(280, context.measureText(values.caption).width + 22);
+    rectangle(27, 411, width, 33, 5, "#0b201cde");
+    text(values.caption, 27 + width / 2, 435, {
+      color: "#f7eece", font: `500 20px ${arabic}`, align: "center", maxWidth: width - 22
+    });
+  }
 }
 
 function paintContent() {
   const { values, images } = content;
-  text(values.kicker, 1312, 74, { color: "#f3cb86", font: "700 27px Tahoma, Arial", maxWidth: 710 });
-  wrappedText(values.headline, 1364, 126, { size: 54, weight: 700, width: 850, lines: 2, spacing: 58, color: "#fffaf0" });
-  wrappedText(values.story, 1364, 236, { size: 26, weight: 400, width: 815, lines: 3, spacing: 33, color: "#edf2ef" });
-  wrappedText(values.appeal, 1364, 350, { size: 26, weight: 700, width: 815, lines: 2, spacing: 33, color: "#f3cb86" });
-  text(values.thanks, 1364, 436, { color: "#edf2ef", font: "700 25px Tahoma, Arial", maxWidth: 815 });
-  if (values.caption) {
-    context.font = "17px Tahoma, Arial";
-    const width = Math.min(280, context.measureText(values.caption).width + 22);
-    rectangle(27, 427, width, 33, 5, "#0b201cde");
-    text(values.caption, 27 + width / 2, 450, {
-      color: "#f7eece", font: "17px Tahoma, Arial", align: "center", maxWidth: width - 22
-    });
-  }
   const quoteFont = "700 37px Tahoma, Arial";
   const sourceFont = "20px Tahoma, Arial";
   context.font = quoteFont;
@@ -199,8 +244,16 @@ function paintContent() {
 
 function paintPoster(cashFraction, totalFraction) {
   const { values, received, total, percent } = current;
+  const story = storyLayout();
+  const posterHeight = template.naturalHeight + story.height * 2;
+  if (poster.height !== posterHeight) poster.height = posterHeight;
   context.setTransform(2, 0, 0, 2, 0, 0);
-  context.drawImage(template, 0, 0, poster.width / 2, poster.height / 2);
+  context.drawImage(template, 0, 0, 2880, heroHeight * 2, 0, 0, 1440, heroHeight);
+  paintHero();
+  paintStory(story);
+  const lowerHeight = template.naturalHeight / 2 - heroHeight;
+  context.translate(0, story.height);
+  context.drawImage(template, 0, heroHeight * 2, 2880, lowerHeight * 2, 0, heroHeight, 1440, lowerHeight);
   paintContent();
   const totalWidth = text(formatAmount(total, true), 1331, 628, {
     font: '700 88px "Segoe UI", Arial', direction: "ltr"
@@ -330,9 +383,10 @@ settings.addEventListener("click", () => {
 
 fill(readSaved());
 update();
-template.addEventListener("load", () => {
+template.addEventListener("load", async () => {
+  await document.fonts.load(`500 36px ${arabic}`, "نداء إنساني عاجل").catch(() => []);
   templateReady = true;
   update();
 });
 template.addEventListener("error", () => feedback("تعذّر تحميل قالب الملصق. أعد تحميل الصفحة."));
-template.src = "poster-template.png?v=3";
+template.src = "poster-template.png?v=5";

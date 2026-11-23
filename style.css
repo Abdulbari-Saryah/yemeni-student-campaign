@@ -1,4 +1,10 @@
 * { box-sizing: border-box; }
+@font-face {
+  font-family: "Noto Sans Arabic";
+  src: url("fonts/NotoSansArabic.ttf") format("truetype");
+  font-weight: 100 900;
+  font-display: swap;
+}
 :root {
   color-scheme: light;
   font-family: Tahoma, Arial, sans-serif;
@@ -56,7 +62,6 @@ input[type=file]::file-selector-button { color: #234436; border: 1px solid #d7de
 canvas { display: block; width: 100%; height: auto; background: #f4f1e8; border: 1px solid #dedbd0; border-radius: 10px; box-shadow: 0 9px 25px #133c2714; }
 @media (min-width: 801px) {
   .preview { position: sticky; top: 14px; }
-  canvas { width: min(100%, max(420px, calc((100dvh - 65px) * .913))); margin-inline: auto; }
 }
 @media (max-width: 800px) {
   .frame { width: min(640px, calc(100% - 28px)); }
