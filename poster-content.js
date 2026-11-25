@@ -3,6 +3,7 @@
 const contentDefaults = {
   kicker: "حملة دعم الطالب اليمني في الصين",
   headline: "حادثٌ غيّر حياة أسرة",
+  subtitle: "من حادث مروري إلى حملة تضامن",
   story: "في مقاطعة شاندونغ بالصين، اصطدمت دراجة نارية كان يستقلّها طالب يمني بسيدة مسنّة. نُقلت السيدة إلى المستشفى، وفارقت الحياة بعد إسعافها.",
   aftermath: "باعت أسرة الطالب كلّ ما تملك لتغطية تكاليف الدفن. وبعد مفاوضات مع أهل السيدة لتخفيض المبلغ المطلوب، اتُّفق على تسوية قدرها 1,171,580\u00a0يوان\u00a0صيني. وأمام مبلغ يفوق قدرة الأسرة، أطلقت الجاليات اليمنية واتحاد الطلاب اليمنيين في الصين حملة لمساعدتها على سداده.",
   appeal: "ساهموا بما تستطيعون في تخفيف هذا العبء عن الطالب وأسرته. وإذا تعذّر عليكم التبرّع، فشاركوا النداء ليصل إلى من يستطيع المساعدة.",
@@ -72,7 +73,9 @@ function createPosterContent(onChange, onStorageFailure) {
   }
   const storageKey = "yemeni-student-campaign-content";
   const signature = contentSignature(published);
-  const legacyContent = { ...published };
+  const previousStoryContent = { ...published };
+  delete previousStoryContent.subtitle;
+  const legacyContent = { ...previousStoryContent };
   delete legacyContent.thanks;
   delete legacyContent.aftermath;
   Object.assign(legacyContent, {
@@ -81,7 +84,7 @@ function createPosterContent(onChange, onStorageFailure) {
     story: supplied.story ?? "باعت أسرته كل ما تملك لتغطية تكاليف دفن سيدة توفّيت إثر حادث مروري في شاندونغ بالصين. واليوم يبقى على الطالب دفع مبلغ التسوية المتفق عليه مع أسرتها.",
     appeal: supplied.appeal ?? "بعطائكم نعينه على الوفاء بالتسوية."
   });
-  const previousSignatures = [signature, contentSignature(legacyContent)];
+  const previousSignatures = [signature, contentSignature(previousStoryContent), contentSignature(legacyContent)];
   if (supplied.headline === undefined) {
     previousSignatures.push(contentSignature({ ...legacyContent, headline: "لنقف مع طالب يمني\nفي محنته" }));
   }
@@ -133,6 +136,7 @@ function createPosterContent(onChange, onStorageFailure) {
   [
     ["kicker", "السطر أعلى العنوان", 50],
     ["headline", "العنوان الرئيسي", 85, true],
+    ["subtitle", "العنوان الفرعي", 85],
     ["story", "تفاصيل الحادث", 300, true],
     ["aftermath", "التسوية وإطلاق الحملة", 420, true],
     ["appeal", "دعوة التبرع والمشاركة", 180, true],

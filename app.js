@@ -186,9 +186,13 @@ function paintHero() {
   const headlineFont = `800 62px ${arabic}`;
   const headline = values.headline.split("\n").flatMap((line) => wrapLines(line, headlineFont, 820));
   const gap = Math.min(79, 252 / Math.max(1, headline.length - 1));
-  const start = 253 - (headline.length - 1) * gap / 2;
+  const span = Math.max(0, headline.length - 1) * gap;
+  const start = values.subtitle.trim() ? Math.min(253 - span / 2, 347 - span) : 253 - span / 2;
   headline.forEach((row, index) => {
     text(row, 1364, start + index * gap, { color: "#fffaf0", font: headlineFont });
+  });
+  text(values.subtitle, 1364, headline.length ? start + span + 68 : 253, {
+    color: "#f3cb86", font: `650 37px ${arabic}`, maxWidth: 820
   });
   if (values.caption) {
     context.font = `500 20px ${arabic}`;
