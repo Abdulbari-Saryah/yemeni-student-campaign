@@ -12,6 +12,7 @@ const storageKey = "yemeni-student-campaign-amounts";
 const poster = document.getElementById("poster");
 const context = poster.getContext("2d");
 const template = new Image();
+const unionLogo = new Image();
 const download = document.getElementById("download");
 const reset = document.getElementById("reset");
 const settings = document.getElementById("download-settings");
@@ -244,7 +245,21 @@ function paintContent() {
     context.drawImage(image, center - width / 2, 1327 - height / 2, width, height);
     text(values[`${key}Name`], center, 1442, { font: "700 19px Tahoma, Arial", align: "center", maxWidth: 194 });
   });
-  text(values.footer, 720, 1541, { font: "700 25px Tahoma, Arial", color: "#f9f5e9", align: "center", maxWidth: 1330 });
+  const footerFont = "700 25px Tahoma, Arial";
+  context.font = footerFont;
+  context.direction = "rtl";
+  const footerWidth = Math.min(1160, context.measureText(values.footer).width);
+  const logoWidth = 108;
+  const logoHeight = 70;
+  const footerGap = footerWidth ? 20 : 0;
+  const logoX = (1440 + footerWidth + footerGap - logoWidth) / 2;
+  const logoY = 1496;
+  rectangle(logoX, logoY, logoWidth, logoHeight, 9, "#fff");
+  const scale = Math.min((logoWidth - 14) / unionLogo.naturalWidth, (logoHeight - 14) / unionLogo.naturalHeight);
+  const width = unionLogo.naturalWidth * scale;
+  const height = unionLogo.naturalHeight * scale;
+  context.drawImage(unionLogo, logoX + (logoWidth - width) / 2, logoY + (logoHeight - height) / 2, width, height);
+  text(values.footer, logoX - footerGap, 1541, { font: footerFont, color: "#f9f5e9", maxWidth: 1160 });
 }
 
 function paintPoster(cashFraction, totalFraction) {
@@ -389,9 +404,18 @@ settings.addEventListener("click", () => {
 fill(readSaved());
 update();
 template.addEventListener("load", async () => {
-  await document.fonts.load(`500 36px ${arabic}`, "نداء إنساني عاجل").catch(() => []);
+  try {
+    await Promise.all([
+      document.fonts.load(`500 36px ${arabic}`, "نداء إنساني عاجل").catch(() => []),
+      unionLogo.decode()
+    ]);
+  } catch {
+    feedback("تعذّر تحميل شعار الاتحاد. أعد تحميل الصفحة.");
+    return;
+  }
   templateReady = true;
   update();
 });
 template.addEventListener("error", () => feedback("تعذّر تحميل قالب الملصق. أعد تحميل الصفحة."));
+unionLogo.src = "ysuc-logo.png";
 template.src = "poster-template.png?v=6";
