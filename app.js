@@ -148,37 +148,30 @@ function wrapLines(value, font, width) {
 }
 
 function storyLayout() {
-  const { story, aftermath, settlement, appeal, thanks } = content.values;
+  const { story, aftermath, appeal, thanks } = content.values;
   const groups = [
-    { heading: "الحادث في شاندونغ", value: story, font: `500 35px ${arabic}`, color: "#233a31" },
-    { heading: "ما تحمّلته الأسرة", value: aftermath, font: `500 35px ${arabic}`, color: "#233a31" },
-    { heading: "التسوية وإطلاق الحملة", value: settlement, font: `500 35px ${arabic}`, color: "#233a31" },
+    { value: story, font: `500 35px ${arabic}`, color: "#233a31" },
+    { value: aftermath, font: `500 35px ${arabic}`, color: "#233a31" },
     { value: appeal, font: `750 34px ${arabic}`, color: "#613d19" },
     { value: thanks, font: `650 34px ${arabic}`, color: "#233a31" }
   ].map((group) => ({ ...group, rows: wrapLines(group.value, group.font, 1175) }))
     .filter((group) => group.rows.length);
   const rowHeight = 55;
   const gap = 20;
-  const headingHeight = 54;
   const height = groups.length
-    ? 67 + groups.reduce((sum, group) =>
-      sum + group.rows.length * rowHeight + (group.heading ? headingHeight : 0), 0) + (groups.length - 1) * gap
+    ? 67 + groups.reduce((sum, group) => sum + group.rows.length * rowHeight, 0) + (groups.length - 1) * gap
     : 0;
-  return { groups, rowHeight, headingHeight, gap, height };
+  return { groups, rowHeight, gap, height };
 }
 
-function paintStory({ groups, rowHeight, headingHeight, gap, height }) {
+function paintStory({ groups, rowHeight, gap, height }) {
   if (!height) return;
   context.fillStyle = "#f4f1e8";
   context.fillRect(0, heroHeight, 1440, height);
   rectangle(70, heroHeight + 20, 1300, height - 40, 22, "#fffdf7");
   rectangle(1354, heroHeight + 46, 5, height - 92, 2.5, "#bd8842");
   let baseline = heroHeight + 83;
-  for (const { heading, rows, font, color } of groups) {
-    if (heading) {
-      text(heading, 1326, baseline, { font: `800 38px ${arabic}`, color: "#204b3a" });
-      baseline += headingHeight;
-    }
+  for (const { rows, font, color } of groups) {
     for (const row of rows) {
       text(row, 1326, baseline, { font, color });
       baseline += rowHeight;
